@@ -5,7 +5,47 @@ const GIFEncoder = require("gifencoder");
 // Path to the images folder
 const imagesPath = "./images";
 
-// Function to create a GIF from images
+// Helper function to calculate the average color of an image
+function getAverageColor(ctx, width, height) {
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  let rTotal = 0,
+    gTotal = 0,
+    bTotal = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    rTotal += data[i]; // Red
+    gTotal += data[i + 1]; // Green
+    bTotal += data[i + 2]; // Blue
+  }
+
+  const numPixels = data.length / 4;
+  return {
+    r: rTotal / numPixels,
+    g: gTotal / numPixels,
+    b: bTotal / numPixels,
+  };
+}
+
+// Helper function to adjust the color of the image based on the target color
+function adjustColor(ctx, width, height, targetColor, avgColor) {
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+
+  const rFactor = targetColor.r / avgColor.r;
+  const gFactor = targetColor.g / avgColor.g;
+  const bFactor = targetColor.b / avgColor.b;
+
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = Math.min(255, data[i] * rFactor); // Adjust Red
+    data[i + 1] = Math.min(255, data[i + 1] * gFactor); // Adjust Green
+    data[i + 2] = Math.min(255, data[i + 2] * bFactor); // Adjust Blue
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
+// Function to create a GIF from images with brightness and color normalization
 async function createGifFromImages() {
   // Get the list of images in alphabetical order
   let files = await fs.readdir(imagesPath);
@@ -14,9 +54,9 @@ async function createGifFromImages() {
   files = files.filter((file) => /\.(jpe?g|png)$/.test(file)).sort();
 
   // Load the first image to determine the original size and set the target size
-  const firstImage = await loadImage(`${imagesPath}/${files[0]}`);
-  const originalWidth = firstImage.width;
-  const originalHeight = firstImage.height;
+  const referenceImage = await loadImage(`${imagesPath}/${files[1]}`);
+  const originalWidth = referenceImage.width;
+  const originalHeight = referenceImage.height;
 
   // Set the target size (resize the images to reduce GIF size)
   const targetWidth = 400; // Desired width
@@ -26,7 +66,7 @@ async function createGifFromImages() {
 
   // Set up the GIF encoder with resized dimensions
   const encoder = new GIFEncoder(targetWidth, targetHeight);
-  encoder.createReadStream().pipe(fs.createWriteStream("./output.gif"));
+  encoder.createReadStream().pipe(fs.createWriteStream("./output5.gif"));
 
   encoder.start();
   encoder.setRepeat(0); // 0 for repeat, -1 for no-repeat
@@ -39,6 +79,10 @@ async function createGifFromImages() {
   // Limit the number of frames to speed up the process if needed
   const maxFrames = 50; // Maximum number of frames to include
 
+  // Select a target frame for color normalization (you can choose a specific image or use the first one)
+  ctx.drawImage(referenceImage, 0, 0, targetWidth, targetHeight);
+  const targetColor = getAverageColor(ctx, targetWidth, targetHeight);
+
   // Loop through each image (limited to maxFrames) and add it to the GIF
   for (let i = 0; i < Math.min(files.length, maxFrames); i++) {
     const imagePath = `${imagesPath}/${files[i]}`;
@@ -48,12 +92,18 @@ async function createGifFromImages() {
     ctx.clearRect(0, 0, targetWidth, targetHeight); // Clear canvas before drawing new frame
     ctx.drawImage(image, 0, 0, targetWidth, targetHeight); // Resize image to fit target dimensions
 
+    // Calculate the average brightness and color of the frame
+    const avgColor = getAverageColor(ctx, targetWidth, targetHeight);
+
+    // Adjust the color to match the target frame
+    adjustColor(ctx, targetWidth, targetHeight, targetColor, avgColor);
+
     // Add the frame to the GIF
     encoder.addFrame(ctx);
   }
 
   encoder.finish(); // Finalize the GIF
-  console.log("GIF created as output.gif");
+  console.log("GIF created as output.gif with color normalization.");
 }
 
 // Call the function
