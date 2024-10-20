@@ -2,7 +2,7 @@ const fs = require("fs-extra");
 const { createCanvas, loadImage } = require("canvas");
 const GIFEncoder = require("gifencoder");
 
-const targetWidth = 400; // Desired height
+const targetWidth = 800; // Desired height
 const repeat = 0; // 0 for repeat, -1 for no-repeat
 const delay = 100; // Frame delay in milliseconds
 const quality = 20; // Lower value for lower quality, makes it faster
@@ -53,6 +53,8 @@ function adjustColor(ctx, width, height, targetColor, avgColor) {
 
 // Function to create a GIF from images with brightness and color normalization
 async function createGifFromImages() {
+  console.log("creating gif...");
+  const startTime = process.hrtime();
   // Get the list of images in alphabetical order
   let files = await fs.readdir(imagesPath);
 
@@ -71,7 +73,9 @@ async function createGifFromImages() {
 
   // Set up the GIF encoder with resized dimensions
   const encoder = new GIFEncoder(targetWidth, targetHeight);
-  encoder.createReadStream().pipe(fs.createWriteStream(`./${outputName}.gif`));
+  encoder
+    .createReadStream()
+    .pipe(fs.createWriteStream(`./output/${outputName}.gif`));
 
   encoder.start();
   encoder.setRepeat(repeat); // 0 for repeat, -1 for no-repeat
@@ -108,7 +112,19 @@ async function createGifFromImages() {
   }
 
   encoder.finish(); // Finalize the GIF
-  console.log("GIF created as output.gif with color normalization.");
+  const elapsedTime = process.hrtime(startTime); // Get the elapsed time
+  const elapsedMilliseconds = elapsedTime[0] * 1000 + elapsedTime[1] / 1e6; // Convert to milliseconds
+
+  const stats = fs.statSync(`./${outputName}.gif`);
+  const fileSizeInBytes = stats.size; // Size in bytes
+  const fileSizeInKB = (fileSizeInBytes / 1024).toFixed(2); // Convert to KB with 2 decimal places
+
+  console.log(`File location: ./output/${outputName}.gif`);
+  console.log(
+    `File size: ${fileSizeInKB} KB. Time elapsed: ${Math.floor(
+      elapsedMilliseconds
+    )}ms`
+  );
 }
 
 // Call the function
