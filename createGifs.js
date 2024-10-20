@@ -2,6 +2,12 @@ const fs = require("fs-extra");
 const { createCanvas, loadImage } = require("canvas");
 const GIFEncoder = require("gifencoder");
 
+const targetWidth = 400; // Desired height
+const repeat = 0; // 0 for repeat, -1 for no-repeat
+const delay = 100; // Frame delay in milliseconds
+const quality = 20; // Lower value for lower quality, makes it faster
+const outputName = "test"; // Output GIF file name
+
 // Path to the images folder
 const imagesPath = "./images";
 
@@ -59,19 +65,18 @@ async function createGifFromImages() {
   const originalHeight = referenceImage.height;
 
   // Set the target size (resize the images to reduce GIF size)
-  const targetWidth = 400; // Desired width
   const targetHeight = Math.floor(
     (targetWidth / originalWidth) * originalHeight
   ); // Maintain aspect ratio
 
   // Set up the GIF encoder with resized dimensions
   const encoder = new GIFEncoder(targetWidth, targetHeight);
-  encoder.createReadStream().pipe(fs.createWriteStream("./output5.gif"));
+  encoder.createReadStream().pipe(fs.createWriteStream(`./${outputName}.gif`));
 
   encoder.start();
-  encoder.setRepeat(0); // 0 for repeat, -1 for no-repeat
-  encoder.setDelay(100); // Lower frame delay (100ms for faster transitions)
-  encoder.setQuality(20); // Higher value for lower quality, makes it faster
+  encoder.setRepeat(repeat); // 0 for repeat, -1 for no-repeat
+  encoder.setDelay(delay); // Lower frame delay (100ms for faster transitions)
+  encoder.setQuality(quality); // Higher value for lower quality, makes it faster
 
   const canvas = createCanvas(targetWidth, targetHeight);
   const ctx = canvas.getContext("2d");
