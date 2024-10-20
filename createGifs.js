@@ -115,7 +115,7 @@ async function createGifFromImages() {
   const elapsedTime = process.hrtime(startTime); // Get the elapsed time
   const elapsedMilliseconds = elapsedTime[0] * 1000 + elapsedTime[1] / 1e6; // Convert to milliseconds
 
-  const stats = fs.statSync(`./${outputName}.gif`);
+  const stats = fs.statSync(`./output/${outputName}.gif`);
   const fileSizeInBytes = stats.size; // Size in bytes
   const fileSizeInKB = (fileSizeInBytes / 1024).toFixed(2); // Convert to KB with 2 decimal places
 
